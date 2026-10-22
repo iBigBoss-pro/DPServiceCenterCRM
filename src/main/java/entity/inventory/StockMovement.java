@@ -8,8 +8,8 @@ import java.time.Instant;
 
 /**
  * Движение запчасти по складу.
- * IN  — приход (закупка): purchasePrice = сколько заплатили поставщику, clientPrice = null.
- * OUT — расход на заказ: purchasePrice = снимок себестоимости, clientPrice = что берём с клиента.
+ * IN     — приход (закупка): purchasePrice = сколько заплатили поставщику, clientPrice = null.
+ * OUT    — расход на заказ: purchasePrice = снимок себестоимости, clientPrice = что берём с клиента.
  * ADJUST — инвентаризация (плюс/минус).
  */
 public class StockMovement extends BaseEntity {
@@ -78,7 +78,7 @@ public class StockMovement extends BaseEntity {
     }
 
     /**
-     * Корректировка (инвентаризация): quantity может быть положительным или отрицательным.
+     * Корректировка (инвентаризация): quantityDelta может быть положительным или отрицательным.
      */
     public static StockMovement adjust(Long partId, int quantityDelta,
                                        BigDecimal purchasePrice, Long userId, String comment) {

@@ -173,7 +173,7 @@ public class Order extends BaseEntity {
     // ── Финализация цен и прибыли ────────────────────────────────
     /**
      * Вызывается сервисом при переводе в COMPLETED_AND_PAID.
-     * partsCost     — сумма purchasePrice запчастей, ушедших в заказ (OUT movements).
+     * partsCost      — сумма purchasePrice запчастей, ушедших в заказ (OUT movements).
      * outsourcedCost — сумма costPrice EXTERNAL работ.
      * Итоговая себестоимость = partsCost + outsourcedCost.
      * Прибыль = finalPrice - (partsCost + outsourcedCost).
