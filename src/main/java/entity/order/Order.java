@@ -6,11 +6,17 @@ import main.java.entity.common.Money;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class Order extends BaseEntity {
 
     private static final Map<OrderStatus, Set<OrderStatus>> TRANSITIONS = new EnumMap<>(OrderStatus.class);
+
     static {
         TRANSITIONS.put(OrderStatus.NEW,                Set.of(OrderStatus.ACCEPTED, OrderStatus.CANCELLED));
         TRANSITIONS.put(OrderStatus.ACCEPTED,           Set.of(OrderStatus.DIAGNOSTICS, OrderStatus.CANCELLED));
@@ -62,7 +68,7 @@ public class Order extends BaseEntity {
     private BigDecimal priceEstimate;
     private BigDecimal finalPrice;
     private BigDecimal diagnosticsPrice;
-    private BigDecimal costPrice;   // себестоимость (запчасти)
+    private BigDecimal costPrice;   // себестоимость (запчасти + аутсорс)
     private BigDecimal profit;      // finalPrice - costPrice (снимок на момент завершения)
 
     // ── Условия приёмки ──────────────────────────────────────────
@@ -167,14 +173,17 @@ public class Order extends BaseEntity {
     // ── Финализация цен и прибыли ────────────────────────────────
     /**
      * Вызывается сервисом при переводе в COMPLETED_AND_PAID.
-     * costPrice — сумма purchasePrice запчастей, ушедших в заказ.
-     * Прибыль = finalPrice - costPrice (хранится снимком).
+     * partsCost     — сумма purchasePrice запчастей, ушедших в заказ (OUT movements).
+     * outsourcedCost — сумма costPrice EXTERNAL работ.
+     * Итоговая себестоимость = partsCost + outsourcedCost.
+     * Прибыль = finalPrice - (partsCost + outsourcedCost).
      */
-    public void finalizePricing(BigDecimal finalPrice, BigDecimal costPrice) {
+    public void finalizePricing(BigDecimal finalPrice, BigDecimal partsCost, BigDecimal outsourcedCost) {
+        if (partsCost == null) throw new IllegalArgumentException("Себестоимость запчастей обязательна");
+        if (outsourcedCost == null) throw new IllegalArgumentException("Стоимость аутсорса обязательна");
         this.finalPrice = Money.of(finalPrice, "Финальная цена");
-        this.costPrice = Money.of(costPrice, "Себестоимость");
+        this.costPrice = Money.of(partsCost.add(outsourcedCost), "Себестоимость");
         this.profit = this.finalPrice.subtract(this.costPrice);
-        // Прибыль может быть отрицательной (гарантия, лояльность) — не блокируем.
     }
 
     // ── Сеттеры цен ──────────────────────────────────────────────
