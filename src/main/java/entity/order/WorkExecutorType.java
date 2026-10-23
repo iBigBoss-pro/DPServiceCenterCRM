@@ -1,4 +1,4 @@
-package main.java.entity.order;
+package entity.order;
 
 public enum WorkExecutorType {
     INTERNAL,   // свой мастер (User)

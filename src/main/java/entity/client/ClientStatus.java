@@ -1,4 +1,4 @@
-package main.java.entity.client;
+package entity.client;
 
 /**
  * Статус клиента. NEW/REGULAR/VIP — авто по правилам (если не manualOverride).

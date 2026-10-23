@@ -1,6 +1,6 @@
-package main.java.entity.notification;
+package entity.notification;
 
-import main.java.entity.common.BaseEntity;
+import entity.common.BaseEntity;
 import java.time.Instant;
 
 public class Notification extends BaseEntity {
@@ -29,6 +29,7 @@ public class Notification extends BaseEntity {
                         String subject, String body) {
         if (clientId == null) throw new IllegalArgumentException("clientId обязателен");
         if (channel == null) throw new IllegalArgumentException("Канал обязателен");
+        if (templateVersion < 0) throw new IllegalArgumentException("Версия шаблона не может быть отрицательной");
         if (recipient == null || recipient.isBlank()) throw new IllegalArgumentException("Получатель обязателен");
         if (body == null || body.isBlank()) throw new IllegalArgumentException("Текст уведомления обязателен");
         this.clientId = clientId;
@@ -42,10 +43,37 @@ public class Notification extends BaseEntity {
         this.status = NotificationStatus.PENDING;
     }
 
-    public void markSent() { this.status = NotificationStatus.SENT; this.sentAt = Instant.now(); }
-    public void markDelivered() { this.status = NotificationStatus.DELIVERED; this.deliveredAt = Instant.now(); }
-    public void markRead() { this.status = NotificationStatus.READ; this.readAt = Instant.now(); }
-    public void markFailed(String error) { this.status = NotificationStatus.FAILED; this.errorMessage = error; }
+    public void markSent() {
+        requireStatus(NotificationStatus.PENDING, "Отправить можно только ожидающее уведомление");
+        this.status = NotificationStatus.SENT;
+        this.sentAt = Instant.now();
+        this.errorMessage = null;
+    }
+
+    public void markDelivered() {
+        requireStatus(NotificationStatus.SENT, "Доставить можно только отправленное уведомление");
+        this.status = NotificationStatus.DELIVERED;
+        this.deliveredAt = Instant.now();
+    }
+
+    public void markRead() {
+        requireStatus(NotificationStatus.DELIVERED, "Прочитать можно только доставленное уведомление");
+        this.status = NotificationStatus.READ;
+        this.readAt = Instant.now();
+    }
+
+    public void markFailed(String error) {
+        if (status != NotificationStatus.PENDING && status != NotificationStatus.SENT) {
+            throw new IllegalStateException("Ошибка допустима только для ожидающего или отправленного уведомления");
+        }
+        if (error == null || error.isBlank()) throw new IllegalArgumentException("Причина ошибки обязательна");
+        this.status = NotificationStatus.FAILED;
+        this.errorMessage = error;
+    }
+
+    private void requireStatus(NotificationStatus expected, String message) {
+        if (status != expected) throw new IllegalStateException(message + ". Текущий статус: " + status);
+    }
 
     public Long getClientId() { return clientId; }
     public Long getOrderId() { return orderId; }

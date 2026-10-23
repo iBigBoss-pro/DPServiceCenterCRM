@@ -1,7 +1,7 @@
-package main.java.entity.pricelist;
+package entity.pricelist;
 
-import main.java.entity.common.BaseEntity;
-import main.java.entity.common.Money;
+import entity.common.BaseEntity;
+import entity.common.Money;
 import java.math.BigDecimal;
 
 public class PriceListItem extends BaseEntity {

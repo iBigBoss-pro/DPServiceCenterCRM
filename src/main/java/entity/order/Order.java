@@ -1,8 +1,8 @@
-package main.java.entity.order;
+package entity.order;
 
-import main.java.entity.client.Client;
-import main.java.entity.common.BaseEntity;
-import main.java.entity.common.Money;
+import entity.client.Client;
+import entity.common.BaseEntity;
+import entity.common.Money;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -132,6 +132,9 @@ public class Order extends BaseEntity {
     public void changeStatus(OrderStatus newStatus, Long userId, String comment) {
         if (newStatus == null) throw new IllegalArgumentException("Новый статус обязателен");
         if (userId == null) throw new IllegalArgumentException("Пользователь обязателен");
+        if (newStatus == OrderStatus.COMPLETED_AND_PAID && finalPrice == null) {
+            throw new IllegalStateException("Перед оплатой необходимо финализировать стоимость заказа");
+        }
         Set<OrderStatus> allowed = TRANSITIONS.getOrDefault(this.status, Set.of());
         if (!allowed.contains(newStatus)) {
             throw new IllegalStateException("Недопустимый переход: " + this.status + " -> " + newStatus);
@@ -141,9 +144,6 @@ public class Order extends BaseEntity {
         if (newStatus == OrderStatus.COMPLETED && this.finishedAt == null) {
             this.finishedAt = Instant.now();
         }
-        if (newStatus == OrderStatus.COMPLETED_AND_PAID && this.pickUp == null) {
-            this.pickUp = Instant.now();
-        }
     }
 
     // ── Согласование ─────────────────────────────────────────────
@@ -151,10 +151,12 @@ public class Order extends BaseEntity {
         if (status != OrderStatus.AWAITING_APPROVAL) {
             throw new IllegalStateException("Согласование только в статусе AWAITING_APPROVAL");
         }
-        this.approvedPrice = Money.of(newPrice, "Согласованная цена");
+        // Validate every input before changing any field (all-or-nothing update).
+        BigDecimal validatedPrice = Money.of(newPrice, "Согласованная цена");
         if (newDeadline != null && newDeadline.isBefore(acceptedAt)) {
             throw new IllegalArgumentException("Новый срок не может быть раньше приёма");
         }
+        this.approvedPrice = validatedPrice;
         this.approvedDeadline = newDeadline;
         this.approvedAt = Instant.now();
     }
@@ -181,9 +183,16 @@ public class Order extends BaseEntity {
     public void finalizePricing(BigDecimal finalPrice, BigDecimal partsCost, BigDecimal outsourcedCost) {
         if (partsCost == null) throw new IllegalArgumentException("Себестоимость запчастей обязательна");
         if (outsourcedCost == null) throw new IllegalArgumentException("Стоимость аутсорса обязательна");
-        this.finalPrice = Money.of(finalPrice, "Финальная цена");
-        this.costPrice = Money.of(partsCost.add(outsourcedCost), "Себестоимость");
-        this.profit = this.finalPrice.subtract(this.costPrice);
+        // Validate each component independently; a negative component must not be
+        // hidden by a larger positive component in the sum.
+        BigDecimal validatedFinalPrice = Money.of(finalPrice, "Финальная цена");
+        BigDecimal validatedPartsCost = Money.of(partsCost, "Себестоимость запчастей");
+        BigDecimal validatedOutsourcedCost = Money.of(outsourcedCost, "Стоимость аутсорса");
+        BigDecimal validatedCost = Money.of(
+                validatedPartsCost.add(validatedOutsourcedCost), "Себестоимость");
+        this.finalPrice = validatedFinalPrice;
+        this.costPrice = validatedCost;
+        this.profit = validatedFinalPrice.subtract(validatedCost);
     }
 
     // ── Сеттеры цен ──────────────────────────────────────────────

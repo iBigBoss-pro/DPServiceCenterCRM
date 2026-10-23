@@ -1,4 +1,4 @@
-package main.java.entity.user;
+package entity.user;
 
 public enum Role {
     RECEIVER,   // Приёмщик

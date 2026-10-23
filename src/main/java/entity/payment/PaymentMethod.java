@@ -1,3 +1,3 @@
-package main.java.entity.payment;
+package entity.payment;
 
 public enum PaymentMethod { CASH, CARD, TRANSFER, OTHER }

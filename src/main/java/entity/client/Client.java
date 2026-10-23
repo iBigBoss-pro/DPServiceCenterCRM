@@ -1,7 +1,7 @@
-package main.java.entity.client;
+package entity.client;
 
-import main.java.entity.common.BaseEntity;
-import main.java.entity.common.Money;
+import entity.common.BaseEntity;
+import entity.common.Money;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -91,8 +91,24 @@ public class Client extends BaseEntity {
     public String getNote() { return note; }
 
     // ── Сеттеры контактов ────────────────────────────────────────
-    public void setPhoneNumber(String phoneNumber) { this.phoneNumber = phoneNumber; }
-    public void setEmail(String email) { this.email = email; }
+    public void setPhoneNumber(String phoneNumber) {
+        ensureContactAvailable(phoneNumber, this.email);
+        this.phoneNumber = phoneNumber;
+        if (phoneNumber == null || phoneNumber.isBlank()) this.notifyBySms = false;
+    }
+    public void setEmail(String email) {
+        ensureContactAvailable(this.phoneNumber, email);
+        this.email = email;
+        if (email == null || email.isBlank()) this.notifyByEmail = false;
+    }
+
+    private static void ensureContactAvailable(String phoneNumber, String email) {
+        boolean hasPhone = phoneNumber != null && !phoneNumber.isBlank();
+        boolean hasEmail = email != null && !email.isBlank();
+        if (!hasPhone && !hasEmail) {
+            throw new IllegalArgumentException("У клиента должен оставаться телефон или email");
+        }
+    }
     public void setTelegramChatId(String telegramChatId) { this.telegramChatId = telegramChatId; }
     public void setNotifyBySms(boolean v) { this.notifyBySms = v; }
     public void setNotifyByEmail(boolean v) { this.notifyByEmail = v; }
@@ -136,25 +152,36 @@ public class Client extends BaseEntity {
      * Вызывается сервисом при переводе заказа в COMPLETED_AND_PAID.
      */
     public void registerCompletedOrder(BigDecimal revenue, BigDecimal profit) {
-        if (revenue == null) throw new IllegalArgumentException("Выручка обязательна");
+        BigDecimal validatedRevenue = Money.of(revenue, "Выручка");
         if (profit == null) throw new IllegalArgumentException("Прибыль обязательна");
+        BigDecimal validatedProfit = profit.setScale(2, RoundingMode.HALF_UP);
         Instant now = Instant.now();
         if (firstVisitAt == null) firstVisitAt = now;
         lastVisitAt = now;
         totalOrders++;
-        totalSpent = totalSpent.add(revenue);
-        totalProfit = totalProfit.add(profit);
+        totalSpent = totalSpent.add(validatedRevenue);
+        totalProfit = totalProfit.add(validatedProfit);
     }
 
     /**
      * Обратный метод — при возврате / откате оплаты.
      */
     public void unregisterCompletedOrder(BigDecimal revenue, BigDecimal profit) {
-        if (revenue == null) throw new IllegalArgumentException("Выручка обязательна");
+        if (revenue == null || revenue.signum() < 0) {
+            throw new IllegalArgumentException("Выручка обязательна и не может быть отрицательной");
+        }
         if (profit == null) throw new IllegalArgumentException("Прибыль обязательна");
-        if (totalOrders > 0) totalOrders--;
-        totalSpent = totalSpent.subtract(revenue);
-        totalProfit = totalProfit.subtract(profit);
+        if (totalOrders <= 0) {
+            throw new IllegalStateException("Нет завершённых заказов для отката");
+        }
+        BigDecimal validatedRevenue = Money.of(revenue, "Выручка");
+        BigDecimal currentSpent = totalSpent == null ? Money.zero() : totalSpent;
+        if (currentSpent.compareTo(validatedRevenue) < 0) {
+            throw new IllegalStateException("Откат превышает накопленную выручку");
+        }
+        totalOrders--;
+        totalSpent = currentSpent.subtract(validatedRevenue);
+        totalProfit = totalProfit.subtract(profit.setScale(2, RoundingMode.HALF_UP));
     }
 
     public BigDecimal getAverageProfitPerOrder() {

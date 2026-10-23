@@ -1,6 +1,6 @@
-package main.java.entity.notification;
+package entity.notification;
 
-import main.java.entity.common.BaseEntity;
+import entity.common.BaseEntity;
 
 public class NotificationTemplate extends BaseEntity {
 

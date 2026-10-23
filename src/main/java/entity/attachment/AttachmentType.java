@@ -1,4 +1,4 @@
-package main.java.entity.attachment;
+package entity.attachment;
 
 public enum AttachmentType {
     PHOTO_BEFORE,     // фото при приёмке

@@ -1,6 +1,6 @@
-package main.java.entity.document;
+package entity.document;
 
-import main.java.entity.common.BaseEntity;
+import entity.common.BaseEntity;
 import java.time.Instant;
 
 /**
@@ -30,6 +30,7 @@ public class Document extends BaseEntity {
     private String voidReason;
 
     private int copyNumber;            // 1 = оригинал, 2+ = повторная печать
+    private int nextCopyNumber = 2;    // sequence for repeated calls on the same original in this domain instance
 
     public Document(Long orderId, DocumentType type, String documentNumber,
                     Long templateId, int templateVersion, String bodyHtml,
@@ -56,7 +57,10 @@ public class Document extends BaseEntity {
     }
 
     public void markSigned(Long signedByUserId, Long scanAttachmentId) {
-        if (status != DocumentStatus.PRINTED) throw new IllegalStateException("Подписать можно только распечатанный документ");
+        if (status != DocumentStatus.PRINTED && status != DocumentStatus.REPRINT) {
+            throw new IllegalStateException("Подписать можно только распечатанный документ");
+        }
+        if (signedByUserId == null) throw new IllegalArgumentException("Сотрудник, принявший подпись, обязателен");
         this.signedAt = Instant.now();
         this.signedByUserId = signedByUserId;
         this.signedScanAttachmentId = scanAttachmentId;
@@ -65,16 +69,21 @@ public class Document extends BaseEntity {
 
     public void voidDocument(Long userId, String reason) {
         if (status == DocumentStatus.VOID) throw new IllegalStateException("Уже аннулирован");
+        if (userId == null) throw new IllegalArgumentException("Сотрудник, аннулирующий документ, обязателен");
+        if (reason == null || reason.isBlank()) throw new IllegalArgumentException("Причина аннулирования обязательна");
         this.voidedAt = Instant.now();
         this.voidedByUserId = userId;
         this.voidReason = reason;
         this.status = DocumentStatus.VOID;
     }
 
-    public Document reprint(Long printedByUserId) {
+    public synchronized Document reprint(Long printedByUserId) {
+        if (status == DocumentStatus.VOID) throw new IllegalStateException("Нельзя повторно печатать аннулированный документ");
+        if (copyNumber != 1) throw new IllegalStateException("Повторную копию нужно создавать из исходного документа");
+        if (printedByUserId == null) throw new IllegalArgumentException("Сотрудник, печатающий документ, обязателен");
         Document copy = new Document(orderId, type, documentNumber, templateId,
                 templateVersion, bodyHtml, printedByUserId);
-        copy.copyNumber = this.copyNumber + 1;
+        copy.copyNumber = nextCopyNumber++;
         copy.status = DocumentStatus.REPRINT;
         return copy;
     }

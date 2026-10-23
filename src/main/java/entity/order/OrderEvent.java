@@ -1,4 +1,4 @@
-package main.java.entity.order;
+package entity.order;
 
 import java.time.Instant;
 
@@ -17,6 +17,7 @@ public class OrderEvent {
     private Long notificationId;   // ссылка на уведомление, если было
 
     public OrderEvent(OrderStatus oldStatus, OrderStatus newStatus, Long userId, String comment) {
+        if (oldStatus == null) throw new IllegalArgumentException("Предыдущий статус обязателен");
         if (newStatus == null) throw new IllegalArgumentException("Новый статус обязателен");
         if (userId == null) throw new IllegalArgumentException("Пользователь обязателен");
         if (oldStatus == newStatus) throw new IllegalArgumentException("Статусы совпадают: " + newStatus);

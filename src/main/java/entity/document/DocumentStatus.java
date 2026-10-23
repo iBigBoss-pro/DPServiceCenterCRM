@@ -1,4 +1,4 @@
-package main.java.entity.document;
+package entity.document;
 
 public enum DocumentStatus {
     DRAFT, PRINTED, SIGNED, VOID, REPRINT

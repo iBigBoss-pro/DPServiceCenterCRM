@@ -1,3 +1,3 @@
-package main.java.entity.approval;
+package entity.approval;
 
 public enum ApprovalStatus { PENDING, APPROVED, REJECTED, EXPIRED }

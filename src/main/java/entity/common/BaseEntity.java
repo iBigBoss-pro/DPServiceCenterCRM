@@ -1,4 +1,4 @@
-package main.java.entity.common;
+package entity.common;
 
 import java.time.Instant;
 
@@ -13,7 +13,7 @@ public abstract class BaseEntity {
     protected Instant createdAt;
     protected Instant updatedAt;
     protected Instant deletedAt;   // null = активна
-    protected long version;        // оптимистичная блокировка
+    protected long entityVersion;        // оптимистичная блокировка
 
     public Long getId() { return id; }
     public Long getServiceCenterId() { return serviceCenterId; }
@@ -21,7 +21,7 @@ public abstract class BaseEntity {
     public Instant getUpdatedAt() { return updatedAt; }
     public Instant getDeletedAt() { return deletedAt; }
     public boolean isDeleted() { return deletedAt != null; }
-    public long getVersion() { return version; }
+    public long getEntityVersion() { return entityVersion; }
 
     protected void setServiceCenterId(Long serviceCenterId) {
         if (serviceCenterId == null || serviceCenterId <= 0) {

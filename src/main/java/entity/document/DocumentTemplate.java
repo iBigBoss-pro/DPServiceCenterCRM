@@ -1,6 +1,6 @@
-package main.java.entity.document;
+package entity.document;
 
-import main.java.entity.common.BaseEntity;
+import entity.common.BaseEntity;
 
 /**
  * Шаблон документа с ВЕРСИОНИРОВАНИЕМ. При изменении шаблона — новая версия,

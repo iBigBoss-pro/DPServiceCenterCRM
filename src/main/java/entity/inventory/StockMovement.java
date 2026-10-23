@@ -1,7 +1,7 @@
-package main.java.entity.inventory;
+package entity.inventory;
 
-import main.java.entity.common.BaseEntity;
-import main.java.entity.common.Money;
+import entity.common.BaseEntity;
+import entity.common.Money;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -122,7 +122,9 @@ public class StockMovement extends BaseEntity {
         return clientPrice.multiply(BigDecimal.valueOf(quantity));
     }
 
+    /** Прибыль имеет смысл только для расхода запчасти в заказ. */
     public BigDecimal getProfit() {
+        if (type != MovementType.OUT || orderId == null) return Money.zero();
         return getTotalClientPrice().subtract(getTotalCost());
     }
 }

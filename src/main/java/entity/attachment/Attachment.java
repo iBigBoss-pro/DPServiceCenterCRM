@@ -1,6 +1,6 @@
-package main.java.entity.attachment;
+package entity.attachment;
 
-import main.java.entity.common.BaseEntity;
+import entity.common.BaseEntity;
 import java.time.Instant;
 
 /**

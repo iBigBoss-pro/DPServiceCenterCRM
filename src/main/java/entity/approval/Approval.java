@@ -1,7 +1,7 @@
-package main.java.entity.approval;
+package entity.approval;
 
-import main.java.entity.common.BaseEntity;
-import main.java.entity.common.Money;
+import entity.common.BaseEntity;
+import entity.common.Money;
 import java.math.BigDecimal;
 import java.time.Instant;
 
@@ -31,6 +31,9 @@ public class Approval extends BaseEntity {
         if (orderId == null) throw new IllegalArgumentException("orderId обязателен");
         if (createdByUserId == null) throw new IllegalArgumentException("Автор обязателен");
         if (sentChannel == null) throw new IllegalArgumentException("Канал отправки обязателен");
+        if (expiresAt != null && !expiresAt.isAfter(Instant.now())) {
+            throw new IllegalArgumentException("Срок согласования должен быть в будущем");
+        }
         this.orderId = orderId;
         this.createdByUserId = createdByUserId;
         this.proposedPrice = proposedPrice == null ? null : Money.of(proposedPrice, "Предложенная цена");
@@ -43,7 +46,7 @@ public class Approval extends BaseEntity {
     }
 
     public void approve(ApprovalChannel channel, String comment) {
-        if (status != ApprovalStatus.PENDING) throw new IllegalStateException("Согласование уже закрыто");
+        ensureRespondable(channel);
         this.status = ApprovalStatus.APPROVED;
         this.respondedChannel = channel;
         this.respondedAt = Instant.now();
@@ -51,11 +54,21 @@ public class Approval extends BaseEntity {
     }
 
     public void reject(ApprovalChannel channel, String comment) {
-        if (status != ApprovalStatus.PENDING) throw new IllegalStateException("Согласование уже закрыто");
+        ensureRespondable(channel);
         this.status = ApprovalStatus.REJECTED;
         this.respondedChannel = channel;
         this.respondedAt = Instant.now();
         this.comment = comment;
+    }
+
+    private void ensureRespondable(ApprovalChannel channel) {
+        if (status != ApprovalStatus.PENDING) throw new IllegalStateException("Согласование уже закрыто");
+        if (channel == null) throw new IllegalArgumentException("Канал ответа обязателен");
+        if (expiresAt != null && !Instant.now().isBefore(expiresAt)) {
+            this.status = ApprovalStatus.EXPIRED;
+            this.respondedAt = Instant.now();
+            throw new IllegalStateException("Срок согласования истёк");
+        }
     }
 
     public void expire() {

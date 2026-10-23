@@ -1,4 +1,4 @@
-package main.java.entity.order;
+package entity.order;
 
 public enum DeviceType {
     MOBILE_PHONE, SMARTPHONE, TABLET, PC, LAPTOP, NETTOP,

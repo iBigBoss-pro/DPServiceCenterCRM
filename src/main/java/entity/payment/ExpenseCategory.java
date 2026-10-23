@@ -1,4 +1,4 @@
-package main.java.entity.payment;
+package entity.payment;
 
 public enum ExpenseCategory {
     OUTSOURCE,      // аутсорсеру за работу

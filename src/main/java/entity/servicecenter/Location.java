@@ -1,6 +1,6 @@
-package main.java.entity.servicecenter;
+package entity.servicecenter;
 
-import main.java.entity.common.BaseEntity;
+import entity.common.BaseEntity;
 
 /**
  * Точка / филиал. Даже если одна — заводим запись, чтобы не переделывать БД потом.

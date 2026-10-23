@@ -1,7 +1,7 @@
-package main.java.entity.user;
+package entity.user;
 
-import main.java.entity.common.BaseEntity;
-import main.java.entity.common.Money;
+import entity.common.BaseEntity;
+import entity.common.Money;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -82,31 +82,40 @@ public class User extends BaseEntity {
      * Считает заказы, где он ГЛАВНЫЙ мастер.
      */
     public void registerCompletedOrderAsMaster(BigDecimal finalPrice) {
-        if (finalPrice == null) throw new IllegalArgumentException("Сумма обязательна");
-        completedOrdersCount++;
-        totalRevenue = totalRevenue.add(finalPrice);
+        BigDecimal validatedPrice = Money.of(finalPrice, "Сумма заказа");
+        completedOrdersCount = Math.addExact(completedOrdersCount, 1);
+        totalRevenue = totalRevenue.add(validatedPrice);
         lastCompletedAt = Instant.now();
     }
 
     /**
-     * Вызывается сервисом, когда добавляется OrderWork с этим исполнителем.
-     * Считает работы, где он ИСПОЛНИТЕЛЬ (может быть больше, чем заказов).
+     * Вызывается сервисом только после завершения OrderWork с этим исполнителем.
+     * Считает завершённые работы, где он ИСПОЛНИТЕЛЬ (может быть больше, чем заказов).
      */
     public void registerCompletedWork() {
-        completedWorksCount++;
+        completedWorksCount = Math.addExact(completedWorksCount, 1);
     }
 
     /**
      * Обратные методы для отката (возврат / удаление работы).
      */
     public void unregisterCompletedOrderAsMaster(BigDecimal finalPrice) {
-        if (finalPrice == null) throw new IllegalArgumentException("Сумма обязательна");
-        if (completedOrdersCount > 0) completedOrdersCount--;
-        totalRevenue = totalRevenue.subtract(finalPrice);
+        BigDecimal validatedPrice = Money.of(finalPrice, "Сумма заказа");
+        if (completedOrdersCount <= 0) {
+            throw new IllegalStateException("Нет завершённых заказов для отката");
+        }
+        if (totalRevenue.compareTo(validatedPrice) < 0) {
+            throw new IllegalStateException("Откат превышает учтённую выручку");
+        }
+        completedOrdersCount--;
+        totalRevenue = totalRevenue.subtract(validatedPrice);
     }
 
     public void unregisterCompletedWork() {
-        if (completedWorksCount > 0) completedWorksCount--;
+        if (completedWorksCount <= 0) {
+            throw new IllegalStateException("Нет завершённых работ для отката");
+        }
+        completedWorksCount--;
     }
 
     public BigDecimal getAverageRevenuePerOrder() {

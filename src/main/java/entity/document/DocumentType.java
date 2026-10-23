@@ -1,4 +1,4 @@
-package main.java.entity.document;
+package entity.document;
 
 public enum DocumentType {
     ACCEPTANCE_ACT,   // Акт приёма с корешком

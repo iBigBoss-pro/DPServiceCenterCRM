@@ -1,7 +1,7 @@
-package main.java.entity.inventory;
+package entity.inventory;
 
-import main.java.entity.common.BaseEntity;
-import main.java.entity.common.Money;
+import entity.common.BaseEntity;
+import entity.common.Money;
 import java.math.BigDecimal;
 
 public class Part extends BaseEntity {
@@ -37,8 +37,26 @@ public class Part extends BaseEntity {
 
     public void setPurchasePrice(BigDecimal v) { this.purchasePrice = Money.of(v, "Цена закупки"); }
     public void setSalePrice(BigDecimal v) { this.salePrice = Money.of(v, "Цена продажи"); }
-    public void setMinStock(int minStock) { this.minStock = minStock; }
-    public void setLocationId(Long locationId) { this.locationId = locationId; }
+    public void setMinStock(int minStock) {
+        if (minStock < 0) throw new IllegalArgumentException("Минимальный остаток не может быть отрицательным");
+        this.minStock = minStock;
+    }
+    public void setLocationId(Long locationId) {
+        if (locationId != null && locationId <= 0) throw new IllegalArgumentException("locationId должен быть > 0");
+        this.locationId = locationId;
+    }
     public void setActive(boolean active) { this.active = active; }
-    public void adjustStock(int delta) { this.quantityInStock += delta; }
+    public void adjustStock(int delta) {
+        final int updated;
+        try {
+            updated = Math.addExact(this.quantityInStock, delta);
+        } catch (ArithmeticException ex) {
+            throw new IllegalArgumentException("Остаток выходит за допустимый диапазон", ex);
+        }
+        if (updated < 0) {
+            throw new IllegalStateException("Недостаточно запчастей на складе: доступно "
+                    + this.quantityInStock + ", запрошено " + Math.abs((long) delta));
+        }
+        this.quantityInStock = updated;
+    }
 }

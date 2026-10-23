@@ -1,7 +1,7 @@
-package main.java.entity.order;
+package entity.order;
 
-import main.java.entity.common.BaseEntity;
-import main.java.entity.common.Money;
+import entity.common.BaseEntity;
+import entity.common.Money;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -151,7 +151,9 @@ public class OrderWork extends BaseEntity {
         if (amount == null || amount.signum() <= 0) {
             throw new IllegalArgumentException("Сумма выплаты должна быть > 0");
         }
-        BigDecimal newPaid = paidToExecutor.add(amount);
+        BigDecimal validatedAmount = Money.of(amount, "Сумма выплаты");
+        if (validatedAmount.signum() <= 0) throw new IllegalArgumentException("Сумма выплаты должна быть > 0");
+        BigDecimal newPaid = paidToExecutor.add(validatedAmount);
         if (newPaid.compareTo(costPrice) > 0) {
             throw new IllegalStateException(
                     "Выплата превышает себестоимость работы: cost=" + costPrice
@@ -171,9 +173,11 @@ public class OrderWork extends BaseEntity {
         if (amount == null || amount.signum() <= 0) {
             throw new IllegalArgumentException("Сумма отката должна быть > 0");
         }
-        if (paidToExecutor.compareTo(amount) < 0) {
+        BigDecimal validatedAmount = Money.of(amount, "Сумма отката");
+        if (validatedAmount.signum() <= 0) throw new IllegalArgumentException("Сумма отката должна быть > 0");
+        if (paidToExecutor.compareTo(validatedAmount) < 0) {
             throw new IllegalStateException("Нельзя откатить больше, чем выплачено");
         }
-        this.paidToExecutor = paidToExecutor.subtract(amount);
+        this.paidToExecutor = paidToExecutor.subtract(validatedAmount);
     }
 }

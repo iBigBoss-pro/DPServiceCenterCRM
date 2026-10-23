@@ -1,7 +1,7 @@
-package main.java.entity.payment;
+package entity.payment;
 
-import main.java.entity.common.BaseEntity;
-import main.java.entity.common.Money;
+import entity.common.BaseEntity;
+import entity.common.Money;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -37,6 +37,8 @@ public class Payment extends BaseEntity {
     public static Payment income(Long orderId, BigDecimal amount, PaymentMethod method,
                                  Long acceptedByUserId, String comment) {
         if (orderId == null) throw new IllegalArgumentException("orderId обязателен");
+        requirePositiveAmount(amount);
+        requirePaymentMetadata(method, acceptedByUserId);
         Payment p = new Payment();
         p.direction = PaymentDirection.INCOME;
         p.orderId = orderId;
@@ -53,6 +55,9 @@ public class Payment extends BaseEntity {
                                     String recipientContact, BigDecimal amount,
                                     PaymentMethod method, Long acceptedByUserId, String comment) {
         if (orderWorkId == null) throw new IllegalArgumentException("orderWorkId обязателен");
+        if (orderId == null) throw new IllegalArgumentException("orderId обязателен для выплаты по заказу");
+        requirePositiveAmount(amount);
+        requirePaymentMetadata(method, acceptedByUserId);
         if (recipientName == null || recipientName.isBlank()) {
             throw new IllegalArgumentException("Имя получателя обязательно");
         }
@@ -76,6 +81,8 @@ public class Payment extends BaseEntity {
                                   BigDecimal amount, PaymentMethod method,
                                   Long acceptedByUserId, String comment) {
         if (category == null) throw new IllegalArgumentException("Категория расхода обязательна");
+        requirePositiveAmount(amount);
+        requirePaymentMetadata(method, acceptedByUserId);
         if (category == ExpenseCategory.OUTSOURCE) {
             throw new IllegalArgumentException("Для аутсорса используйте outsource(...)");
         }
@@ -92,6 +99,18 @@ public class Payment extends BaseEntity {
     }
 
     private Payment() {}
+
+    private static void requirePositiveAmount(BigDecimal amount) {
+        BigDecimal validated = Money.of(amount, "Сумма");
+        if (validated.signum() <= 0) {
+            throw new IllegalArgumentException("Сумма платежа должна быть больше нуля");
+        }
+    }
+
+    private static void requirePaymentMetadata(PaymentMethod method, Long acceptedByUserId) {
+        if (method == null) throw new IllegalArgumentException("Способ оплаты обязателен");
+        if (acceptedByUserId == null) throw new IllegalArgumentException("Пользователь, проведший платёж, обязателен");
+    }
 
     // ── Геттеры ──────────────────────────────────────────────────
     public PaymentDirection getDirection() { return direction; }

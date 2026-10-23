@@ -1,6 +1,6 @@
-package main.java.entity.servicecenter;
+package entity.servicecenter;
 
-import main.java.entity.common.BaseEntity;
+import entity.common.BaseEntity;
 
 /**
  * Сервисный центр (тенант). Реквизиты нужны для печати актов и договоров.
@@ -76,12 +76,14 @@ public class ServiceCenter extends BaseEntity {
     }
 
     // ── Генерация номеров (в JPA — в транзакции с пессимистичным локом) ──
-    public String nextOrderNumber(int currentYear) {
+    public synchronized String nextOrderNumber(int currentYear) {
+        if (currentYear < 1) throw new IllegalArgumentException("Год должен быть положительным");
         if (currentYear != lastOrderYear) { lastOrderYear = currentYear; lastOrderNumber = 0; }
         lastOrderNumber++;
         return "%s-%d-%06d".formatted(shortCode(), currentYear, lastOrderNumber);
     }
-    public String nextDocumentNumber(int currentYear) {
+    public synchronized String nextDocumentNumber(int currentYear) {
+        if (currentYear < 1) throw new IllegalArgumentException("Год должен быть положительным");
         if (currentYear != lastDocumentYear) { lastDocumentYear = currentYear; lastDocumentNumber = 0; }
         lastDocumentNumber++;
         return "%s-%d-%06d".formatted(shortCode(), currentYear, lastDocumentNumber);

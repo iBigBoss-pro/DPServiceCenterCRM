@@ -1,3 +1,3 @@
-package main.java.entity.inventory;
+package entity.inventory;
 
 public enum MovementType { IN, OUT, ADJUST }

@@ -1,6 +1,6 @@
-package main.java.entity.warranty;
+package entity.warranty;
 
-import main.java.entity.common.BaseEntity;
+import entity.common.BaseEntity;
 import java.time.Instant;
 
 public class Warranty extends BaseEntity {
@@ -16,14 +16,15 @@ public class Warranty extends BaseEntity {
     public Warranty(Long orderId, Integer months, String note, Long issuedByUserId) {
         if (orderId == null) throw new IllegalArgumentException("orderId обязателен");
         if (issuedByUserId == null) throw new IllegalArgumentException("Кто устанавливает гарантию — обязателен");
-        if (months != null && months < 0) throw new IllegalArgumentException("Срок гарантии не может быть < 0");
+        if (months != null && months < 1) throw new IllegalArgumentException("Срок гарантии должен быть не меньше одного месяца; null означает отсутствие гарантии");
         this.orderId = orderId;
         this.months = months;
         this.note = note;
         this.issuedByUserId = issuedByUserId;
         this.issuedAt = Instant.now();
         if (months != null) {
-            this.validUntil = this.issuedAt.plus(months * 30L, java.time.temporal.ChronoUnit.DAYS);
+            this.validUntil = this.issuedAt.atZone(java.time.ZoneOffset.UTC)
+                    .plusMonths(months).toInstant();
         }
     }
 
@@ -37,5 +38,8 @@ public class Warranty extends BaseEntity {
     public Instant getIssuedAt() { return issuedAt; }
     public Long getWarrantyDocumentId() { return warrantyDocumentId; }
 
-    public void setWarrantyDocumentId(Long id) { this.warrantyDocumentId = id; }
+    public void setWarrantyDocumentId(Long id) {
+        if (id != null && id <= 0) throw new IllegalArgumentException("Идентификатор гарантийного документа должен быть > 0");
+        this.warrantyDocumentId = id;
+    }
 }
