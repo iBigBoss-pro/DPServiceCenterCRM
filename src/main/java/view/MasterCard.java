@@ -21,7 +21,7 @@ public class MasterCard {
 
     private String topWork;        // самая частая работа
 
-        public Long getMasterId() { return masterId; }
+    public Long getMasterId() { return masterId; }
     public void setMasterId(Long masterId) { this.masterId = masterId; }
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }

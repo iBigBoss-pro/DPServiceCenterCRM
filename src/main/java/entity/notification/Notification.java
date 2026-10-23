@@ -1,27 +1,63 @@
 package entity.notification;
 
 import entity.common.BaseEntity;
+import entity.order.Order;
+import jakarta.persistence.*;
+
 import java.time.Instant;
+import java.util.Objects;
+
+@Entity
+@Table(name = "notifications")
 
 public class Notification extends BaseEntity {
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id", nullable = false, insertable = false, updatable = false)
+    private Order order;
+
+    @Column(name = "client_id", nullable = false)
     private Long clientId;
+
+    @Column(name = "order_id")
     private Long orderId;
+
+    @Column(name = "template_id", nullable = false)
     private Long templateId;
+
+    @Column(name = "template_version", nullable = false)
     private int templateVersion;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "channel", length = 50, nullable = false)
     private NotificationChannel channel;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 50, nullable = false)
     private NotificationStatus status;
 
+    @Column(name = "recipient", length = 255, nullable = false)
     private String recipient;        // phone / email / chatId на момент отправки
+
+    @Column(name = "subject", length = 500)
     private String subject;
+
+    @Column(name = "body", columnDefinition = "TEXT", nullable = false)
     private String body;             // снимок текста
 
+    @Column(name = "sent_at")
     private Instant sentAt;
+
+    @Column(name = "delivered_at")
     private Instant deliveredAt;
+
+    @Column(name = "read_at")
     private Instant readAt;
+
+    @Column(name = "error_message")
     private String errorMessage;
 
+    @Column(name = "triggered_by_user_id")
     private Long triggeredByUserId; // null = система
 
     public Notification(Long clientId, Long orderId, Long templateId, int templateVersion,
@@ -91,4 +127,17 @@ public class Notification extends BaseEntity {
     public Long getTriggeredByUserId() { return triggeredByUserId; }
 
     public void setTriggeredByUserId(Long v) { this.triggeredByUserId = v; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Notification that = (Notification) o;
+        return Objects.equals(getId(), that.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getId());
+    }
 }

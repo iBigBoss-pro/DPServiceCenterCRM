@@ -1,35 +1,78 @@
 package entity.document;
 
 import entity.common.BaseEntity;
+import entity.order.Order;
+import jakarta.persistence.*;
+
 import java.time.Instant;
+import java.util.Objects;
 
 /**
  * Распечатанный документ. Хранит СНИМОК тела на момент печати (шаблон мог измениться).
  */
+@Entity
+@Table(name = "documents")
+
 public class Document extends BaseEntity {
 
+    @Column(name = "order_id", nullable = false)
     private Long orderId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id", insertable = false, updatable = false)
+    private Order order;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", length = 50, nullable = false)
     private DocumentType type;
+
+    @Column(name = "document_number", length = 50, nullable = false)
     private String documentNumber;     // SC1-2026-000123
 
+    @Column(name = "template_id", nullable = false)
     private Long templateId;
+
+    @Column(name = "template_version", nullable = false)
     private int templateVersion;       // версия шаблона на момент печати
+
+    @Column(name = "body_html", columnDefinition = "TEXT", nullable = false)
     private String bodyHtml;           // снимок HTML (шаблон уже подставлен)
+
+    @Column(name = "pdf_path")
     private String pdfPath;            // путь к сохранённому PDF (или blob)
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 50, nullable = false)
     private DocumentStatus status;
+
+    @Column(name = "printed_at", nullable = false)
     private Instant printedAt;
+
+    @Column(name = "printed_by_user_id", nullable = false)
     private Long printedByUserId;
 
+    @Column(name = "signed_at")
     private Instant signedAt;          // когда клиент подписал
+
+    @Column(name = "signed_by_user_id")
     private Long signedByUserId;       // кто из сотрудников принял подпись
+
+    @Column(name = "signed_scan_attachment_id")
     private Long signedScanAttachmentId; // скан подписанного
 
+    @Column(name = "voided_by_user_id")
     private Long voidedByUserId;       // кто аннулировал
+
+    @Column(name = "voided_at")
     private Instant voidedAt;
+
+    @Column(name = "void_reason")
     private String voidReason;
 
+    @Column(name = "copy_number", nullable = false)
     private int copyNumber;            // 1 = оригинал, 2+ = повторная печать
+
+    @Column(name = "next_copy_number")
     private int nextCopyNumber = 2;    // sequence for repeated calls on the same original in this domain instance
 
     public Document(Long orderId, DocumentType type, String documentNumber,
@@ -107,4 +150,19 @@ public class Document extends BaseEntity {
     public int getCopyNumber() { return copyNumber; }
 
     public void setPdfPath(String pdfPath) { this.pdfPath = pdfPath; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Document document = (Document) o;
+        return Objects.equals(getId(), document.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(getId());
+    }
+
 }
+

@@ -1,8 +1,13 @@
 package entity.order;
 
+import entity.approval.Approval;
 import entity.client.Client;
 import entity.common.BaseEntity;
 import entity.common.Money;
+import entity.document.Document;
+import entity.notification.Notification;
+import entity.payment.Payment;
+import entity.warranty.Warranty;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -11,7 +16,12 @@ import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "orders")
 
 public class Order extends BaseEntity {
 
@@ -35,54 +45,110 @@ public class Order extends BaseEntity {
     }
 
     // ── Идентификация ────────────────────────────────────────────
+    @Column(name = "order_number", nullable = false, unique = true, length = 50)
     private String orderNumber;
+    @Column(name = "public_token", nullable = false, unique = true, length = 100)
     private String publicToken;
 
     // ── Связи ────────────────────────────────────────────────────
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "client_id", nullable = false)
     private Client client;
+    @Column(name = "master_id")
     private Long masterId;
+    @Column(name = "receiver_id")
     private Long receiverId;
+    @Column(name = "location_id")
     private Long locationId;
 
     // ── Статус и сроки ───────────────────────────────────────────
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 50, nullable = false)
     private OrderStatus status;
+    @Column(name = "accepted_at", nullable = false)
     private Instant acceptedAt;
+    @Column(name = "must_be_finished_at", nullable = false)
     private Instant mustBeFinishedAt;
+    @Column(name = "finished_at")
     private Instant finishedAt;
+    @Column(name = "pick_up")
     private Instant pickUp;
 
     // ── Устройство ───────────────────────────────────────────────
+    @Enumerated(EnumType.STRING)
+    @Column(name = "device_type", length = 50, nullable = false)
     private DeviceType deviceType;
+    @Column(length = 255)
     private String manufacturer;
+    @Column(length = 255)
     private String model;
+    @Column(length = 255)
     private String serialNumber;
+    @Column(length = 500)
     private String malfunction;
+    @Column(name = "malfunction_description", length = 2000)
     private String malfunctionDescription;
+    @Column(length = 500)
     private String accessories;
+    @Column(name = "condition_on_acceptance", length = 1000)
     private String conditionOnAcceptance;
+    @Column
     private boolean locked;
+    @Column(name = "password_provided")
     private boolean passwordProvided;
+    @Column(name = "photos_taken")
     private boolean photosTaken;
 
     // ── Цены и прибыль ───────────────────────────────────────────
+    @Column(precision = 15, scale = 2)
     private BigDecimal priceEstimate;
+    @Column(precision = 15, scale = 2)
     private BigDecimal finalPrice;
+    @Column(precision = 15, scale = 2)
     private BigDecimal diagnosticsPrice;
+    @Column(precision = 15, scale = 2)
     private BigDecimal costPrice;   // себестоимость (запчасти + аутсорс)
+    @Column(precision = 15, scale = 2)
     private BigDecimal profit;      // finalPrice - costPrice (снимок на момент завершения)
 
     // ── Условия приёмки ──────────────────────────────────────────
+    @Column(name = "client_agreed_to_diagnostics")
     private boolean clientAgreedToDiagnostics;
+    @Column(name = "client_agreed_to_password_use")
     private boolean clientAgreedToPasswordUse;
+    @Column(name = "storage_deadline_days")
     private int storageDeadlineDays;
 
     // ── Согласованные условия ────────────────────────────────────
+    @Column(name = "approved_price", precision = 15, scale = 2)
     private BigDecimal approvedPrice;
+    @Column(name = "approved_deadline")
     private Instant approvedDeadline;
+    @Column(name = "approved_at")
     private Instant approvedAt;
 
     // ── История ──────────────────────────────────────────────────
+    @Transient
     private final List<OrderEvent> history = new ArrayList<>();
+
+    // ── Коллекции (JPA relationships) ────────────────────────────
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrderWork> orderWorks = new ArrayList<>();
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Payment> payments = new ArrayList<>();
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Document> documents = new ArrayList<>();
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Notification> notifications = new ArrayList<>();
+
+    @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Warranty warranty;
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Approval> approvals = new ArrayList<>();
 
     public Order(String orderNumber, String publicToken, Client client, Long receiverId,
                  Long locationId, Instant mustBeFinishedAt, DeviceType deviceType,
@@ -246,5 +312,19 @@ public class Order extends BaseEntity {
             throw new IllegalArgumentException("Срок раньше завершения");
         }
         this.mustBeFinishedAt = mustBeFinishedAt;
+    }
+
+    // ── Equals & HashCode ────────────────────────────────────────
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Order order = (Order) o;
+        return Objects.equals(id, order.id) && Objects.equals(orderNumber, order.orderNumber);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, orderNumber);
     }
 }

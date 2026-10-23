@@ -5,6 +5,8 @@ import entity.common.Money;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Objects;
+import jakarta.persistence.*;
 
 /**
  * Работа по заказу. Может быть выполнена своим мастером (INTERNAL)
@@ -16,21 +18,38 @@ import java.time.Instant;
  *
  * Прибыль по работе = clientPrice * quantity - costPrice.
  */
+@Entity
+@Table(name = "order_works")
+
 public class OrderWork extends BaseEntity {
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id", nullable = false, insertable = false, updatable = false)
+    private Order order;
+
+    @Column(name = "order_id", nullable = false)
     private Long orderId;
+    @Column(length = 500)
     private String name;
+    @Column(precision = 15, scale = 2)
     private BigDecimal clientPrice;   // цена для клиента за единицу
     private int quantity;
 
     // ── Исполнитель ──────────────────────────────────────────────
+    @Enumerated(EnumType.STRING)
+    @Column(name = "executor_type", length = 50, nullable = false)
     private WorkExecutorType executorType;
+    @Column(name = "master_id")
     private Long masterId;                 // INTERNAL: id User
+    @Column(name = "external_master_name", length = 255)
     private String externalMasterName;     // EXTERNAL: имя/ник аутсорсера
+    @Column(name = "external_master_contact", length = 255)
     private String externalMasterContact;  // телефон/Telegram
 
     // ── Себестоимость работы и выплаты аутсорсеру ────────────────
+    @Column(precision = 15, scale = 2)
     private BigDecimal costPrice;        // 0 для своих; сумма аутсорсеру для EXTERNAL
+    @Column(precision = 15, scale = 2)
     private BigDecimal paidToExecutor;   // сколько уже выплачено (только EXTERNAL)
 
     private String comment;
@@ -93,6 +112,8 @@ public class OrderWork extends BaseEntity {
 
     // ── Геттеры ──────────────────────────────────────────────────
     public Long getOrderId() { return orderId; }
+
+    public void setOrderId(Long orderId) { this.orderId = orderId; }
     public String getName() { return name; }
     public BigDecimal getClientPrice() { return clientPrice; }
     public int getQuantity() { return quantity; }
@@ -179,5 +200,19 @@ public class OrderWork extends BaseEntity {
             throw new IllegalStateException("Нельзя откатить больше, чем выплачено");
         }
         this.paidToExecutor = paidToExecutor.subtract(validatedAmount);
+    }
+
+    // ── Equals & HashCode ────────────────────────────────────────
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        OrderWork orderWork = (OrderWork) o;
+        return Objects.equals(id, orderWork.id) && Objects.equals(orderId, orderWork.orderId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, orderId);
     }
 }

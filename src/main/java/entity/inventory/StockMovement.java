@@ -5,26 +5,48 @@ import entity.common.Money;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Objects;
+
+import jakarta.persistence.*;
 
 /**
  * Движение запчасти по складу.
  * IN     — приход (закупка): purchasePrice = сколько заплатили поставщику, clientPrice = null.
- * OUT    — расход на заказ: purchasePrice = снимок себестоимости, clientPrice = что берём с клиента.
+ * OUT    — расхо�� на заказ: purchasePrice = снимок себестоимости, clientPrice = что берём с клиента.
  * ADJUST — инвентаризация (плюс/минус).
  */
+@Entity
+@Table(name = "stock_movements")
+
 public class StockMovement extends BaseEntity {
 
+    @Column(name = "part_id", nullable = false)
     private Long partId;
+
+    @Column(name = "order_id")
     private Long orderId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", length = 50, nullable = false)
     private MovementType type;
+
+    @Column(name = "quantity")
     private int quantity;
 
     // ── Две цены ─────────────────────────────────────────────────
+    @Column(name = "purchase_price", precision = 15, scale = 2)
     private BigDecimal purchasePrice;   // себестоимость единицы
+
+    @Column(name = "client_price", precision = 15, scale = 2)
     private BigDecimal clientPrice;     // цена клиенту (только для OUT к заказу)
 
+    @Column(name = "user_id", nullable = false)
     private Long userId;
+
+    @Column(name = "moved_at", nullable = false)
     private Instant movedAt;
+
+    @Column(name = "comment", length = 2000)
     private String comment;
 
     private StockMovement() {}
@@ -126,5 +148,30 @@ public class StockMovement extends BaseEntity {
     public BigDecimal getProfit() {
         if (type != MovementType.OUT || orderId == null) return Money.zero();
         return getTotalClientPrice().subtract(getTotalCost());
+    }
+
+    // ── equals & hashCode ────────────────────────────────────────
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        StockMovement that = (StockMovement) o;
+        return quantity == that.quantity
+                && Objects.equals(partId, that.partId)
+                && Objects.equals(orderId, that.orderId)
+                && type == that.type
+                && Objects.equals(purchasePrice, that.purchasePrice)
+                && Objects.equals(clientPrice, that.clientPrice)
+                && Objects.equals(userId, that.userId)
+                && Objects.equals(movedAt, that.movedAt)
+                && Objects.equals(comment, that.comment);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), partId, orderId, type, quantity,
+                purchasePrice, clientPrice, userId, movedAt, comment);
     }
 }

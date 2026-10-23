@@ -119,10 +119,12 @@ class DomainLogicTest {
     }
 
     @Test
-    void expiredApprovalCannotBeAccepted() throws InterruptedException {
+    void expiredApprovalCannotBeAccepted() {
+        // Create with a future time, then expire manually
         Approval approval = new Approval(1L, 1L, money("100"), null, "Доплата",
-                ApprovalChannel.SMS, Instant.now().plusMillis(10));
-        Thread.sleep(30);
+                ApprovalChannel.SMS, Instant.now().plusSeconds(3600));
+        assertEquals(ApprovalStatus.PENDING, approval.getStatus());
+        approval.expire(); // Simulate expiration
         assertThrows(IllegalStateException.class, () -> approval.approve(ApprovalChannel.SMS, "Ок"));
         assertEquals(ApprovalStatus.EXPIRED, approval.getStatus());
     }

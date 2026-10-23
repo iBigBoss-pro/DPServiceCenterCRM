@@ -2,27 +2,61 @@ package entity.approval;
 
 import entity.common.BaseEntity;
 import entity.common.Money;
+import entity.order.Order;
+import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Objects;
 
 /**
  * Согласование изменённых условий с клиентом.
  * Создаётся, когда мастер переводит заказ в AWAITING_APPROVAL.
  */
+@Entity
+@Table(name = "approvals")
+
 public class Approval extends BaseEntity {
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id", nullable = false, insertable = false, updatable = false)
+    private Order order;
+
+    @Column(name = "order_id", nullable = false)
     private Long orderId;
+
+    @Column(name = "proposed_price", precision = 15, scale = 2)
     private BigDecimal proposedPrice;
+
+    @Column(name = "proposed_deadline")
     private Instant proposedDeadline;
+
+    @Column(length = 1000)
     private String reason;             // почему меняются условия
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 50, nullable = false)
     private ApprovalStatus status;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "sent_channel", length = 50)
     private ApprovalChannel sentChannel;
+
+    @Column(name = "sent_at")
     private Instant sentAt;
+    @Column(name = "responded_at")
     private Instant respondedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "responded_channel", length = 50)
     private ApprovalChannel respondedChannel;
+
+    @Column(length = 1000)
     private String comment;
+
+    @Column(name = "created_by_user_id", nullable = false)
     private Long createdByUserId;      // мастер, создавший предложение
+
+    @Column(name = "expires_at")
     private Instant expiresAt;         // когда истекает ожидание
 
     public Approval(Long orderId, Long createdByUserId,
@@ -90,4 +124,18 @@ public class Approval extends BaseEntity {
     public String getComment() { return comment; }
     public Long getCreatedByUserId() { return createdByUserId; }
     public Instant getExpiresAt() { return expiresAt; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        Approval approval = (Approval) o;
+        return Objects.equals(orderId, approval.orderId) && Objects.equals(proposedPrice, approval.proposedPrice) && Objects.equals(proposedDeadline, approval.proposedDeadline) && Objects.equals(reason, approval.reason) && status == approval.status && sentChannel == approval.sentChannel && Objects.equals(sentAt, approval.sentAt) && Objects.equals(respondedAt, approval.respondedAt) && respondedChannel == approval.respondedChannel && Objects.equals(comment, approval.comment) && Objects.equals(createdByUserId, approval.createdByUserId) && Objects.equals(expiresAt, approval.expiresAt);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), orderId, proposedPrice, proposedDeadline, reason, status, sentChannel, sentAt, respondedAt, respondedChannel, comment, createdByUserId, expiresAt);
+    }
 }

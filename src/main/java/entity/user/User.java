@@ -6,22 +6,53 @@ import entity.common.Money;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.util.Objects;
+
+import jakarta.persistence.*;
+
+/**
+ * Пользователь системы (сотрудник сервисного центра).
+ */
+@Entity
+@Table(name = "users")
 
 public class User extends BaseEntity {
 
+    @Column(name = "username", nullable = false, unique = true, length = 100)
     private String username;
+
+    @Column(name = "password_hash", nullable = false, length = 500)
     private String passwordHash;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", length = 50, nullable = false)
     private Role role;
+
+    @Column(name = "first_name", nullable = false, length = 255)
     private String firstName;
+
+    @Column(name = "last_name", length = 255)
     private String lastName;
+
+    @Column(name = "email", nullable = false, length = 255)
     private String email;
-    private Long locationId;      // к какой точке привязан (null = все)
+
+    @Column(name = "location_id")
+    private Long locationId;
+
+    @Column(name = "active")
     private boolean active;
 
-    // ── Агрегаты мастера (обновляет сервис) ─────────────────────
-    private int completedOrdersCount;   // заказы, где он masterId
-    private int completedWorksCount;    // работы из OrderWork, где он исполнитель
-    private BigDecimal totalRevenue;    // сумма finalPrice заказов, где он masterId
+    @Column(name = "completed_orders_count")
+    private int completedOrdersCount;
+
+    @Column(name = "completed_works_count")
+    private int completedWorksCount;
+
+    @Column(name = "total_revenue", precision = 15, scale = 2)
+    private BigDecimal totalRevenue;
+
+    @Column(name = "last_completed_at")
     private Instant lastCompletedAt;
 
     public User(String username, String passwordHash, Role role,
@@ -51,7 +82,6 @@ public class User extends BaseEntity {
         this.completedWorksCount = 0;
     }
 
-    // ── Геттеры ──────────────────────────────────────────────────
     public String getUsername() { return username; }
     public Role getRole() { return role; }
     public String getFirstName() { return firstName; }
@@ -66,21 +96,26 @@ public class User extends BaseEntity {
 
     String getPasswordHash() { return passwordHash; }
 
-    // ── Сеттеры ──────────────────────────────────────────────────
+    public void setUsername(String username) {
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("Логин не может быть пустым");
+        }
+        this.username = username;
+    }
+
     public void setRole(Role role) {
         if (role == null) throw new IllegalArgumentException("Роль обязательна");
         this.role = role;
     }
+
+    public void setEmail(String email) { this.email = email; }
+    public void setFirstName(String firstName) { this.firstName = firstName; }
+    public void setLastName(String lastName) { this.lastName = lastName; }
+
     public void setLocationId(Long locationId) { this.locationId = locationId; }
     public void setActive(boolean active) { this.active = active; }
     public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
 
-    // ── Бизнес-методы ────────────────────────────────────────────
-
-    /**
-     * Вызывается сервисом, когда заказ, где этот User — masterId, переходит в COMPLETED_AND_PAID.
-     * Считает заказы, где он ГЛАВНЫЙ мастер.
-     */
     public void registerCompletedOrderAsMaster(BigDecimal finalPrice) {
         BigDecimal validatedPrice = Money.of(finalPrice, "Сумма заказа");
         completedOrdersCount = Math.addExact(completedOrdersCount, 1);
@@ -88,17 +123,10 @@ public class User extends BaseEntity {
         lastCompletedAt = Instant.now();
     }
 
-    /**
-     * Вызывается сервисом только после завершения OrderWork с этим исполнителем.
-     * Считает завершённые работы, где он ИСПОЛНИТЕЛЬ (может быть больше, чем заказов).
-     */
     public void registerCompletedWork() {
         completedWorksCount = Math.addExact(completedWorksCount, 1);
     }
 
-    /**
-     * Обратные методы для отката (возврат / удаление работы).
-     */
     public void unregisterCompletedOrderAsMaster(BigDecimal finalPrice) {
         BigDecimal validatedPrice = Money.of(finalPrice, "Сумма заказа");
         if (completedOrdersCount <= 0) {
@@ -121,5 +149,18 @@ public class User extends BaseEntity {
     public BigDecimal getAverageRevenuePerOrder() {
         if (completedOrdersCount == 0) return Money.zero();
         return totalRevenue.divide(BigDecimal.valueOf(completedOrdersCount), 2, RoundingMode.HALF_UP);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        User user = (User) o;
+        return Objects.equals(id, user.id) && Objects.equals(serviceCenterId, user.serviceCenterId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, serviceCenterId);
     }
 }

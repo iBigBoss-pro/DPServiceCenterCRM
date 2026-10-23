@@ -2,45 +2,94 @@ package entity.client;
 
 import entity.common.BaseEntity;
 import entity.common.Money;
+import entity.order.Order;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
+import jakarta.persistence.*;
+
+/**
+ * Клиент сервисного центра.
+ */
+@Entity
+@Table(name = "clients")
 
 public class Client extends BaseEntity {
 
-    // ── Идентификация ────────────────────────────────────────────
+    @Column(name = "first_name", nullable = false, length = 255)
     private String firstName;
+
+    @Column(name = "last_name", length = 255)
     private String lastName;
+
+    @Column(name = "patronymic", length = 255)
     private String patronymic;
 
-    // ── Контакты ─────────────────────────────────────────────────
+    @Column(name = "phone_number", length = 50)
     private String phoneNumber;
+
+    @Column(name = "email", length = 255)
     private String email;
+
+    @Column(name = "telegram_chat_id", length = 255)
     private String telegramChatId;
 
-    // ── Согласие на уведомления ──────────────────────────────────
+    @Column(name = "notify_by_sms")
     private boolean notifyBySms;
+
+    @Column(name = "notify_by_email")
     private boolean notifyByEmail;
+
+    @Column(name = "notify_by_telegram")
     private boolean notifyByTelegram;
+
+    @Column(name = "notify_by_push")
     private boolean notifyByPush;
+
+    @Column(name = "preferred_channel", length = 50)
     private String preferredChannel;
 
-    // ── Сегментация и лояльность ─────────────────────────────────
-    private ClientStatus status;             // NEW / REGULAR / VIP / PROBLEM / BLACKLIST
-    private boolean statusManualOverride;    // true = авто-правила не применяются
-    private boolean important;               // «нельзя потерять»
-    private String importanceNote;           // почему важен
-    private BigDecimal discountPercent;      // 0..100, ставит ADMIN/DIRECTOR
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", length = 50, nullable = false)
+    private ClientStatus status;
 
-    // ── Денормализованные агрегаты (обновляет сервис) ───────────
-    private int totalOrders;                 // завершённых и оплаченных
-    private BigDecimal totalSpent;           // накопленная выручка
-    private BigDecimal totalProfit;          // накопленная прибыль
+    @Column(name = "status_manual_override")
+    private boolean statusManualOverride;
+
+    @Column(name = "important")
+    private boolean important;
+
+    @Column(name = "importance_note", length = 1000)
+    private String importanceNote;
+
+    @Column(name = "discount_percent", precision = 5, scale = 2)
+    private BigDecimal discountPercent;
+
+    @Column(name = "total_orders")
+    private int totalOrders;
+
+    @Column(name = "total_spent", precision = 15, scale = 2)
+    private BigDecimal totalSpent;
+
+    @Column(name = "total_profit", precision = 15, scale = 2)
+    private BigDecimal totalProfit;
+
+    @Column(name = "first_visit_at")
     private Instant firstVisitAt;
+
+    @Column(name = "last_visit_at")
     private Instant lastVisitAt;
 
-    private String note;                     // внутренние заметки
+    @Column(name = "note", length = 2000)
+    private String note;
+
+    @OneToMany(mappedBy = "client", cascade = CascadeType.PERSIST)
+    private List<Order> orders = new ArrayList<>();
 
     public Client(String firstName, String lastName, String patronymic,
                   String phoneNumber, String email) {
@@ -66,7 +115,6 @@ public class Client extends BaseEntity {
         this.totalProfit = Money.zero();
     }
 
-    // ── Геттеры ──────────────────────────────────────────────────
     public String getFirstName() { return firstName; }
     public String getLastName() { return lastName; }
     public String getPatronymic() { return patronymic; }
@@ -89,13 +137,14 @@ public class Client extends BaseEntity {
     public Instant getFirstVisitAt() { return firstVisitAt; }
     public Instant getLastVisitAt() { return lastVisitAt; }
     public String getNote() { return note; }
+    public List<Order> getOrders() { return orders; }
 
-    // ── Сеттеры контактов ────────────────────────────────────────
     public void setPhoneNumber(String phoneNumber) {
         ensureContactAvailable(phoneNumber, this.email);
         this.phoneNumber = phoneNumber;
         if (phoneNumber == null || phoneNumber.isBlank()) this.notifyBySms = false;
     }
+
     public void setEmail(String email) {
         ensureContactAvailable(this.phoneNumber, email);
         this.email = email;
@@ -109,7 +158,11 @@ public class Client extends BaseEntity {
             throw new IllegalArgumentException("У клиента должен оставаться телефон или email");
         }
     }
+
     public void setTelegramChatId(String telegramChatId) { this.telegramChatId = telegramChatId; }
+    public void setFirstName(String firstName) { this.firstName = firstName; }
+    public void setLastName(String lastName) { this.lastName = lastName; }
+    public void setPatronymic(String patronymic) { this.patronymic = patronymic; }
     public void setNotifyBySms(boolean v) { this.notifyBySms = v; }
     public void setNotifyByEmail(boolean v) { this.notifyByEmail = v; }
     public void setNotifyByTelegram(boolean v) { this.notifyByTelegram = v; }
@@ -117,12 +170,6 @@ public class Client extends BaseEntity {
     public void setPreferredChannel(String v) { this.preferredChannel = v; }
     public void setNote(String note) { this.note = note; }
 
-    // ── Бизнес-методы ────────────────────────────────────────────
-
-    /**
-     * Ручная установка статуса. Только ADMIN/DIRECTOR (проверка прав — в сервисе).
-     * manualOverride = true, если статус выставлен вручную и не должен перезаписываться авто-правилами.
-     */
     public void setStatus(ClientStatus status, boolean manualOverride) {
         if (status == null) throw new IllegalArgumentException("Статус клиента обязателен");
         this.status = status;
@@ -137,9 +184,6 @@ public class Client extends BaseEntity {
         this.importanceNote = importanceNote;
     }
 
-    /**
-     * Персональная скидка. Только ADMIN/DIRECTOR (проверка прав — в сервисе).
-     */
     public void setDiscountPercent(BigDecimal discountPercent) {
         if (discountPercent == null) throw new IllegalArgumentException("Скидка обязательна");
         if (discountPercent.signum() < 0 || discountPercent.compareTo(BigDecimal.valueOf(100)) > 0) {
@@ -148,9 +192,6 @@ public class Client extends BaseEntity {
         this.discountPercent = discountPercent.setScale(2, RoundingMode.HALF_UP);
     }
 
-    /**
-     * Вызывается сервисом при переводе заказа в COMPLETED_AND_PAID.
-     */
     public void registerCompletedOrder(BigDecimal revenue, BigDecimal profit) {
         BigDecimal validatedRevenue = Money.of(revenue, "Выручка");
         if (profit == null) throw new IllegalArgumentException("Прибыль обязательна");
@@ -163,9 +204,6 @@ public class Client extends BaseEntity {
         totalProfit = totalProfit.add(validatedProfit);
     }
 
-    /**
-     * Обратный метод — при возврате / откате оплаты.
-     */
     public void unregisterCompletedOrder(BigDecimal revenue, BigDecimal profit) {
         if (revenue == null || revenue.signum() < 0) {
             throw new IllegalArgumentException("Выручка обязательна и не может быть отрицательной");
@@ -201,5 +239,18 @@ public class Client extends BaseEntity {
             sb.append(patronymic);
         }
         return sb.toString();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Client client = (Client) o;
+        return Objects.equals(id, client.id) && Objects.equals(serviceCenterId, client.serviceCenterId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, serviceCenterId);
     }
 }

@@ -2,33 +2,58 @@ package entity.payment;
 
 import entity.common.BaseEntity;
 import entity.common.Money;
+import entity.order.Order;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Objects;
+
+import jakarta.persistence.*;
 
 /**
  * Финансовая транзакция. INCOME — от клиента, EXPENSE — расход (аутсорсеру, поставщику и т.п.).
  * Для EXPENSE с категорией OUTSOURCE — привязка к OrderWork.
  */
+@Entity
+@Table(name = "payments")
 public class Payment extends BaseEntity {
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "direction", length = 50, nullable = false)
     private PaymentDirection direction;
 
     // ── INCOME ───────────────────────────────────────────────────
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id", insertable = false, updatable = false)
+    private Order order;
+
+    @Column(name = "order_id")
     private Long orderId;              // по какому заказу пришли деньги
 
     // ── EXPENSE ──────────────────────────────────────────────────
+    @Enumerated(EnumType.STRING)
+    @Column(name = "expense_category", length = 50)
     private ExpenseCategory expenseCategory;   // только для EXPENSE
+    @Column(name = "order_work_id")
     private Long orderWorkId;                  // для OUTSOURCE — какая работа
+    @Column(name = "recipient_name", length = 500)
     private String recipientName;              // «Сергей», «ООО Поставщик»
+    @Column(name = "recipient_contact", length = 500)
     private String recipientContact;           // телефон/Telegram
+    @Column(name = "supplier_id")
     private Long supplierId;                   // если появится справочник
 
     // ── Общее ────────────────────────────────────────────────────
+    @Column(name = "amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal amount;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "method", length = 50, nullable = false)
     private PaymentMethod method;
+    @Column(name = "paid_at", nullable = false)
     private Instant paidAt;
+    @Column(name = "accepted_by_user_id", nullable = false)
     private Long acceptedByUserId;    // кто провёл
+    @Column(name = "comment", length = 1000)
     private String comment;
 
     // ── Конструкторы ─────────────────────────────────────────────
@@ -125,6 +150,21 @@ public class Payment extends BaseEntity {
     public Instant getPaidAt() { return paidAt; }
     public Long getAcceptedByUserId() { return acceptedByUserId; }
     public String getComment() { return comment; }
+    public Order getOrder() { return order; }
 
     public void setComment(String comment) { this.comment = comment; }
+    public void setSupplierId(Long supplierId) { this.supplierId = supplierId; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Payment payment = (Payment) o;
+        return Objects.equals(id, payment.id) && Objects.equals(serviceCenterId, payment.serviceCenterId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, serviceCenterId);
+    }
 }

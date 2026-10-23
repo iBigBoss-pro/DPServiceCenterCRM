@@ -29,7 +29,7 @@ public class ClientCard {
     private String lastDevice;      // «iPhone 13»
     private String lastMalfunction; // «замена экрана»
 
-        public Long getClientId() { return clientId; }
+    public Long getClientId() { return clientId; }
     public void setClientId(Long clientId) { this.clientId = clientId; }
     public String getFullName() { return fullName; }
     public void setFullName(String fullName) { this.fullName = fullName; }

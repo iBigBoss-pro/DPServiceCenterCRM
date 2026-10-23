@@ -2,17 +2,39 @@ package entity.inventory;
 
 import entity.common.BaseEntity;
 import entity.common.Money;
+
 import java.math.BigDecimal;
+import java.util.Objects;
+
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "parts")
 
 public class Part extends BaseEntity {
 
+    @Column(name = "name", nullable = false, length = 500)
     private String name;
+
+    @Column(name = "sku", nullable = false, length = 100)
     private String sku;             // артикул
+
+    @Column(name = "purchase_price", precision = 15, scale = 2)
     private BigDecimal purchasePrice;
+
+    @Column(name = "sale_price", precision = 15, scale = 2)
     private BigDecimal salePrice;
+
+    @Column(name = "quantity_in_stock")
     private int quantityInStock;
+
+    @Column(name = "min_stock")
     private int minStock;           // порог для предупреждения
+
+    @Column(name = "location_id")
     private Long locationId;
+
+    @Column(name = "active")
     private boolean active;
 
     public Part(String name, String sku) {
@@ -37,6 +59,8 @@ public class Part extends BaseEntity {
 
     public void setPurchasePrice(BigDecimal v) { this.purchasePrice = Money.of(v, "Цена закупки"); }
     public void setSalePrice(BigDecimal v) { this.salePrice = Money.of(v, "Цена продажи"); }
+    public void setName(String name) { this.name = name; }
+    public void setSku(String sku) { this.sku = sku; }
     public void setMinStock(int minStock) {
         if (minStock < 0) throw new IllegalArgumentException("Минимальный остаток не может быть отрицательным");
         this.minStock = minStock;
@@ -58,5 +82,29 @@ public class Part extends BaseEntity {
                     + this.quantityInStock + ", запрошено " + Math.abs((long) delta));
         }
         this.quantityInStock = updated;
+    }
+
+    // ── equals & hashCode ────────────────────────────────────────
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        Part part = (Part) o;
+        return quantityInStock == part.quantityInStock
+                && minStock == part.minStock
+                && active == part.active
+                && Objects.equals(name, part.name)
+                && Objects.equals(sku, part.sku)
+                && Objects.equals(purchasePrice, part.purchasePrice)
+                && Objects.equals(salePrice, part.salePrice)
+                && Objects.equals(locationId, part.locationId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), name, sku, purchasePrice, salePrice,
+                quantityInStock, minStock, locationId, active);
     }
 }
