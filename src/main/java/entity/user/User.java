@@ -82,6 +82,9 @@ public class User extends BaseEntity {
         this.completedWorksCount = 0;
     }
 
+    // Default constructor for JPA/Hibernate
+    protected User() {}
+
     public String getUsername() { return username; }
     public Role getRole() { return role; }
     public String getFirstName() { return firstName; }
@@ -94,7 +97,7 @@ public class User extends BaseEntity {
     public BigDecimal getTotalRevenue() { return totalRevenue; }
     public Instant getLastCompletedAt() { return lastCompletedAt; }
 
-    String getPasswordHash() { return passwordHash; }
+    public String getPasswordHash() { return passwordHash; }
 
     public void setUsername(String username) {
         if (username == null || username.isBlank()) {

@@ -1,7 +1,6 @@
 package com.ibigboss.crm.dto.request;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.NotBlank;
 
 public class ClientUpdateRequest {
 
@@ -9,10 +8,8 @@ public class ClientUpdateRequest {
     private String firstName;
     private String patronymic;
 
-    @Pattern(regexp = "^\\+?[0-9\\s\\-]{7,20}$", message = "Некорректный номер телефона")
     private String phoneNumber;
 
-    @Email(message = "Некорректный email")
     private String email;
 
     private String telegramChatId;
@@ -24,6 +21,7 @@ public class ClientUpdateRequest {
     private String note;
     private String status;
     private Boolean important;
+    private String importanceNote;
 
     public String getLastName() {
         return lastName;
@@ -135,5 +133,13 @@ public class ClientUpdateRequest {
 
     public void setImportant(Boolean important) {
         this.important = important;
+    }
+
+    public String getImportanceNote() {
+        return importanceNote;
+    }
+
+    public void setImportanceNote(String importanceNote) {
+        this.importanceNote = importanceNote;
     }
 }

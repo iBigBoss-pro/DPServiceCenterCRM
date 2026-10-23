@@ -20,6 +20,8 @@ public class ClientResponse {
     private BigDecimal totalProfit;
     private Instant firstVisitAt;
     private Instant lastVisitAt;
+    private String note;
+    private String importanceNote;
 
     public String getFullName() {
         StringBuilder sb = new StringBuilder();
@@ -153,5 +155,21 @@ public class ClientResponse {
 
     public void setLastVisitAt(Instant lastVisitAt) {
         this.lastVisitAt = lastVisitAt;
+    }
+
+    public String getNote() {
+        return note;
+    }
+
+    public void setNote(String note) {
+        this.note = note;
+    }
+
+    public String getImportanceNote() {
+        return importanceNote;
+    }
+
+    public void setImportanceNote(String importanceNote) {
+        this.importanceNote = importanceNote;
     }
 }

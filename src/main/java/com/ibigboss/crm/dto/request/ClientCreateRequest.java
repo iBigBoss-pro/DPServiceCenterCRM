@@ -1,8 +1,6 @@
 package com.ibigboss.crm.dto.request;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 
 public class ClientCreateRequest {
 
@@ -14,10 +12,9 @@ public class ClientCreateRequest {
 
     private String patronymic;
 
-    @Pattern(regexp = "^\\+?[0-9\\s\\-]{7,20}$", message = "Некорректный номер телефона")
+    @NotBlank(message = "Номер телефона обязателен")
     private String phoneNumber;
 
-    @Email(message = "Некорректный email")
     private String email;
 
     private String telegramChatId;

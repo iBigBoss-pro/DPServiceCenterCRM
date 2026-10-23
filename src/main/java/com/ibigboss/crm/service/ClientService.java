@@ -70,7 +70,7 @@ public class ClientService {
             entity.client.ClientStatus status = entity.client.ClientStatus.valueOf(request.getStatus());
             client.setStatus(status, true);
         }
-        if (request.getImportant() != null) client.setImportant(request.getImportant(), null);
+        if (request.getImportant() != null) client.setImportant(request.getImportant(), request.getImportanceNote());
         client = clientRepository.save(client);
         return toResponse(client);
     }
@@ -84,6 +84,7 @@ public class ClientService {
     public List<ClientResponse> listAll(Long serviceCenterId) {
         return clientRepository.findAll().stream()
             .filter(c -> c.getServiceCenterId().equals(serviceCenterId))
+            .filter(c -> !c.isDeleted())
             .map(this::toResponse)
             .toList();
     }

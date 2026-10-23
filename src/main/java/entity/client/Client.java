@@ -115,6 +115,9 @@ public class Client extends BaseEntity {
         this.totalProfit = Money.zero();
     }
 
+    // Default constructor for JPA/Hibernate
+    protected Client() {}
+
     public String getFirstName() { return firstName; }
     public String getLastName() { return lastName; }
     public String getPatronymic() { return patronymic; }
